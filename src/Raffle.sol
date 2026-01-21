@@ -15,7 +15,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
   /* Errors */
   error Raffle__SendMoreToEnterRaffle();
   error Raffle__TransferFailed();
-  error Raffle_RaffleNotOpen();
+  error Raffle__RaffleNotOpen();
   error Raffle__UpkeepNotNeeded(uint256 balance, uint256 playersLength, uint256 raffleState);
   
   /* Type declarations */
@@ -41,6 +41,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
   /* Events */
   event RaffleEntered(address indexed player);
   event WinnerPicked(address indexed winner);
+  event RequestedRaffleWinner(uint256 indexed requestId);
 
   constructor(uint256 entranceFee, uint256 interval, address vrfCoordinator, bytes32 gasLane,
              uint256 subscriptionId, uint32 callbackGasLimit) VRFConsumerBaseV2Plus(vrfCoordinator){
@@ -60,7 +61,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
     }
     
     if(s_raffleState != RaffleState.OPEN) {
-      revert Raffle_RaffleNotOpen();
+      revert Raffle__RaffleNotOpen();
     }
 
     // payable(msg.sender) -> in order to have an address receive ETH
@@ -93,7 +94,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
   // 2. User random number to pick a player
   // 3. Be automatically called 
 
-  function performUpKeep(bytes calldata /* performData */) external {
+  function performUpkeep(bytes calldata /* performData */) external {
     // check to see if enough time has passed
     (bool upkeepNeeded, ) = checkUpKeep("");
     if(!upkeepNeeded) {
@@ -105,7 +106,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
     // Get our random number
     // 1. Request RNG
     // 2. Get RNG
-    s_vrfCoordinator.requestRandomWords(
+    uint256 requestId = s_vrfCoordinator.requestRandomWords(
       VRFV2PlusClient.RandomWordsRequest({
         keyHash: i_keyHash,
         subId: i_subscriptionId,
@@ -118,6 +119,7 @@ contract Raffle is VRFConsumerBaseV2Plus{
         )
       })
     );
+    emit RequestedRaffleWinner(requestId);
   }
 
   // CEI: Checks, Effects, Interactinos Pattern
@@ -146,5 +148,21 @@ contract Raffle is VRFConsumerBaseV2Plus{
   */
   function getEntranceFee() external view returns(uint256) {
     return i_entranceFee;
+  }
+
+    function getRaffleState() external view returns(RaffleState) {
+    return s_raffleState;
+  }
+
+  function getPlayer(uint256 indexOfPlayer) external view returns(address){
+    return s_players[indexOfPlayer];
+  }
+
+  function getLasTimeStamp() external view returns(uint256) {
+    return s_lastTimeStamp;
+  }
+
+  function getRecentWinner() external view returns(address) {
+    return s_recentWinner;
   }
 }

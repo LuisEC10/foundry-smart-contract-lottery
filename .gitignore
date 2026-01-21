@@ -12,3 +12,6 @@ docs/
 
 # Dotenv file
 .env
+
+# Makefile -> just because it has my own sepolia url
+Makefile
